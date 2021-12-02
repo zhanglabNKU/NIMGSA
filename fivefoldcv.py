@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import argparse
+import math
 
 from models import GraphConv, AE, LP
 from utils import *
@@ -46,13 +47,9 @@ def norm_adj(feat):
     g = torch.from_numpy(norm_adj).float()
     return g
 
-#gdi = np.loadtxt(path + '/known_gene_disease_interaction.txt')
+
 mdi = np.loadtxt('m-d.txt',delimiter=',')
-# rnafeat = np.loadtxt(path + '/rnafeat.txt', delimiter=',')
-# rnafeat = minmax_scale(rnafeat,axis=0)
-# gdit = torch.from_numpy(gdi).float()
 mdit = torch.from_numpy(mdi).float()
-# rnafeatorch = torch.from_numpy(rnafeat).float()
 mm = np.loadtxt('m-m.txt',delimiter=',')
 dd = np.loadtxt('d-d.txt',delimiter=',')
 gm = normalized(mm)
@@ -90,30 +87,13 @@ def criterion(output,target,msg,n_nodes,mu,logvar):
 def train(gnnp,y0,epoch,alpha):
     beta = 1.0
     optp = torch.optim.Adam(gnnp.parameters(),lr=args.lr,weight_decay=args.weight_decay)
-    #optq = torch.optim.Adam(gnnq.parameters(),lr=args.lr,weight_decay=args.weight_decay)
     for e in range(epoch):
-        '''
-        gnnq.train()
-        hl,stdl,xl,hd,stdd,xd = gnnq(xl0,xd0)
-        lossql = criterion(xl,xl0,
-            "lncrna",gl.shape[0],hl,stdl)
-        lossqd = criterion(xd,xd0,
-            "disease",gd.shape[0],hd,stdd)
-        lossq = alpha*lossql + (1-alpha)*lossqd + beta0*e*F.mse_loss(
-            torch.mm(hl,hd.t()),y0)/epoch
-        optq.zero_grad()
-        lossq.backward()
-        optq.step()
-        gnnq.eval()
-        with torch.no_grad():
-            hl,_,_,hd,_,_ = gnnq(xl0,xd0)
-        '''
         gnnp.train()
         yl,zl,yd,zd = gnnp(y0)
         losspl = F.binary_cross_entropy(yl,y0)
         losspd = F.binary_cross_entropy(yd,y0.t())
         value = alpha*yl+(1-alpha)*yd.t()
-        att = torch.softmax(torch.mm(zl,zd.t()),dim=-1)*value
+        att = torch.softmax(torch.mm(zl,zd.t())/math.sqrt(args.hidden),dim=-1)*value
         lossp = beta*(alpha*losspl + (1-alpha)*losspd) + F.mse_loss(att,y0)#F.mse_loss(torch.mm(zl,zd.t()),y0) + F.mse_loss(yl,yd.t())
         optp.zero_grad()
         lossp.backward()
@@ -141,60 +121,7 @@ def trainres(A0):
     resi = args.alpha*yli + (1-args.alpha)*ydi.t()
     return resi
 
-'''
-def fivefoldcv(A,alpha=0.5):
-    N = int(A.sum())
-    idx = np.arange(N)
-    np.random.shuffle(idx)
-    lnc,dis = torch.where(A==1)
-    ymat = trainres(A)
-    #ymat = scaley(ymat)
-    for i in range(5):
-        print("Fold {}".format(i+1))
-        A0 = A.clone()
-        for j in range(i*N//5,(i+1)*N//5):
-            A0[lnc[idx[j]],dis[idx[j]]] = 0
-        
-        resi = trainres(A0)
-        #resi = scaley(resi)
-        for j in range(i*N//5,(i+1)*N//5):
-            ymat[lnc[idx[j]],dis[idx[j]]] = resi[lnc[idx[j]],dis[idx[j]]]
-        
-        if args.cuda:
-            resi = resi.cpu().detach().numpy()
-        else:
-            resi = resi.detach().numpy()
-        
-        auroc,aupr = show_auc(resi,args.data)
-    
-    if args.cuda:
-        return ymat.cpu().detach().numpy()
-    else:
-        return ymat.detach().numpy()
 
-def fivefoldcv(A,alpha=0.5):
-    N = A.shape[0]#int(A.sum())
-    idx = np.arange(N)
-    np.random.shuffle(idx)
-    lnc,dis = torch.where(A==1)
-    ymat = torch.zeros_like(A)
-    for i in range(5):
-        print("Fold {}".format(i+1))
-        A0 = A.clone()
-        for j in range(i*N//5,(i+1)*N//5):
-            A0[j,:] = torch.zeros(A.shape[1])
-        
-        resi = trainres(A0)
-        #resi = scaley(resi)
-        for j in range(i*N//5,(i+1)*N//5):
-            ymat[j,:] = resi[j,:]
-        
-    
-    if args.cuda:
-        return ymat.cpu().detach().numpy()
-    else:
-        return ymat.detach().numpy()
-'''
 def fivefoldcv(A,alpha=0.5):
     N = A.shape[0]
     idx = np.arange(N)
@@ -228,45 +155,12 @@ def fivefoldcv(A,alpha=0.5):
         return ymat.cpu().detach().numpy()
     else:
         return ymat.detach().numpy()
-'''
-def fivefoldcv(A,alpha=0.5):
-    N = int(A.sum())
-    idx = np.arange(N)
-    np.random.shuffle(idx)
-    lnc,dis = torch.where(A==1)
-    res = torch.zeros(5,A.shape[0],A.shape[1])
-    aurocl = np.zeros(5)
-    auprl = np.zeros(5)
-    for i in range(5):
-        print("Fold {}".format(i+1))
-        A0 = A.clone()
-        for j in range(i*N//5,(i+1)*N//5):
-            A0[lnc[idx[j]],dis[idx[j]]] = 0
-        
-        resi = trainres(A0)
-        #resi = scaley(resi)
-        res[i] = resi
-        
-        if args.cuda:
-            resi = resi.cpu().detach().numpy()
-        else:
-            resi = resi.detach().numpy()
-        
-        auroc,aupr = show_auc(resi,args.data)
-        aurocl[i] = auroc
-        auprl[i] = aupr
-        
-    ymat = res[auprl.argmax()]
-    if args.cuda:
-        return ymat.cpu().detach().numpy()
-    else:
-        return ymat.detach().numpy()
-'''
+
 title = 'result--dataset'+str(args.data)
 ymat = fivefoldcv(mdit,alpha=args.alpha)
 title += '--fivefoldcv'
 ymat = scaley(ymat)
 #np.savetxt(title+'.txt',ymat,fmt='%10.5f',delimiter=',')
-np.savetxt('nimgmda.txt',ymat,fmt='%10.5f',delimiter=',')
+np.savetxt('nimgsa.txt',ymat,fmt='%10.5f',delimiter=',')
 print("===Max result===")
 show_auc(ymat,args.data)
