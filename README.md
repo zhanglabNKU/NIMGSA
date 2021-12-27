@@ -50,8 +50,8 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 Files of data are listed as follow:
 
-- `d-d.txt`  includes the similarity of all diseases.
-- `disease name.csv` includes the name of all diseases.
+- `d-d.txt`  is a matrix  `Sd`  that includes the similarity of all diseases, `Sd[i,j]`  denotes the similarity between disease `i`  and disease `j` .
+- `disease name.csv` is a table that lists the name of all diseases.
 - `m-d.txt` is a matrix  `Y`  that shows miRNA-disease associations. `Y[i,j]=1`  if miRNA `i`  and disease `j` are known to be associated, otherwise 0.
-- `m-m.txt`  includes the similarity of all miRNAs.
-- `miRNA name.csv` includes the name of all miRNAs.
+- `m-m.txt`  is a matrix  `Sm`  that includes the similarity of all miRNAs, `Sm[i,j]`  denotes the similarity between miRNA `i`  and miRNA `j` ..
+- `miRNA name.csv` is a table that lists the name of all miRNAs.
