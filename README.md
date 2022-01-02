@@ -55,3 +55,18 @@ Files of data are listed as follow:
 - `m-d.txt` is a matrix  `Y`  that shows miRNA-disease associations. `Y[i,j]=1`  if miRNA `i`  and disease `j` are known to be associated, otherwise 0.
 - `m-m.txt`  is a matrix  `Sm`  that includes the similarity of all miRNAs, `Sm[i,j]`  denotes the similarity between miRNA `i`  and miRNA `j` ..
 - `miRNA name.csv` is a table that lists the name of all miRNAs.
+
+## Citation
+
+```
+@article{jin2022nimgsa,
+    author = {Jin, Chen and Shi, Zhuangwei and Lin, Ken and Zhang, Han},
+    title = {Predicting miRNA-Disease Association Based on Neural Inductive Matrix Completion with Graph Autoencoders and Self-Attention Mechanism},
+    journal = {Biomolecules},
+    volume = {12},
+    year = {2022},
+    number = {1},
+    pages = {64},
+}
+```
+
